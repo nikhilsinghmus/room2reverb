@@ -73,7 +73,7 @@ def main():
             # Model training
             label = data["label"].cuda()
             spec = data["image"].cuda()
-            model.train_step(spec, label, (i % 3) == 0)
+            model.train_step(spec, label, (i % 3) == 0, (i % 3 == 0))
 
             # Print progress
             if (total_steps % args.print_freq) == print_delta:

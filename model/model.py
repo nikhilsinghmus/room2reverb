@@ -33,7 +33,7 @@ class Room2Reverb:
         self.g_optim = torch.optim.Adam(self.g.model.parameters(), lr=G_LR, betas=ADAM_BETA, eps=ADAM_EPS)
         self.d_optim = torch.optim.Adam(self.d.model.parameters(), lr=D_LR, betas=ADAM_BETA, eps=ADAM_EPS)
 
-    def train_step(self, spec, label, train_g):
+    def train_step(self, spec, label, train_g, train_d):
         """Perform one training step."""
         spec.requires_grad = True # For the backward pass, seems necessary for now
         
@@ -69,13 +69,13 @@ class Room2Reverb:
         self.G_loss = G_loss1 + (LAMBDA * G_loss2)
         self.G_loss.backward()
         self.g_optim.step()
-
-        self.d.zero_grad()
-        l_fakeD = self._criterion_GAN(d_fake, torch.zeros(d_fake.shape).cuda())
-        l_realD = self._criterion_GAN(d_real, torch.ones(d_real.shape).cuda())
-        self.D_loss = 0.5 * (l_realD + l_fakeD)
-        self.D_loss.backward()
-        self.d_optim.step()
+        if train_d: #train discriminator once every k iterations
+            self.d.zero_grad()
+            l_fakeD = self._criterion_GAN(d_fake, torch.zeros(d_fake.shape).cuda())
+            l_realD = self._criterion_GAN(d_real, torch.ones(d_real.shape).cuda())
+            self.D_loss = 0.5 * (l_realD + l_fakeD)
+            self.D_loss.backward()
+            self.d_optim.step()
         
     def wgan_gp(self, real_data, fake_data): # Gradient penalty to promote Lipschitz continuity
         alpha = torch.rand(1, 1)
